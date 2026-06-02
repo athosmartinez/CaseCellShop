@@ -2,6 +2,11 @@
 # CaseCellShop — .gitignore (Node + TypeScript: back-end e front-end)
 # ---------------------------------------------------------------------------
 
+# Spec-driven development — notas internas do processo (specs e planos).
+# Não fazem parte da entrega: apenas README, PROMPTS.md (curado) e o código
+# vão para o repositório público. Mantém o histórico do desafio limpo.
+docs/superpowers/
+
 # Dependências
 node_modules/
 .pnp/
