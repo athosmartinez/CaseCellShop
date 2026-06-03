@@ -98,6 +98,30 @@ Retorna o estado atual: `PROCESSING` → `CONFIRMED` ou `FAILED`.
 
 ---
 
+## Resetar o banco
+
+O banco é um único arquivo SQLite em `backend/data/casecellshop.sqlite` (os arquivos `-shm` e `-wal` ao lado são auxiliares do modo WAL). O seed só insere os 3 produtos **se a tabela `products` estiver vazia** (`seedIfEmpty`), e isso roda no boot da API. Logo: esvaziar os produtos e reiniciar devolve o estado de fábrica.
+
+**Reset total** (produtos + pedidos + idempotência) — recomendado para dev:
+
+```bash
+# 1. pare o npm run dev (Ctrl+C)
+rm backend/data/casecellshop.sqlite*   # apaga o banco e os auxiliares -shm/-wal
+npm run dev                            # o boot recria o schema e re-semeia os 3 produtos
+```
+
+**Só os produtos**, mantendo pedidos e o arquivo:
+
+```bash
+# com o servidor parado:
+sqlite3 backend/data/casecellshop.sqlite "DELETE FROM products;"
+npm run dev   # seedIfEmpty re-insere os 3 produtos
+```
+
+> Pare a API antes de apagar/limpar o banco — o processo mantém o arquivo aberto. E se já houver pedidos, prefira o reset total: a tabela `orders` referencia `products`, então apagar só os produtos deixaria pedidos apontando para produtos inexistentes.
+
+---
+
 ## Limitações conhecidas
 
 - **Vazamento de estoque (stock leak):** se o processo cair entre a reserva do estoque e a compensação em caso de falha do ERP, o estoque fica preso. Mitigação real: sweeper com TTL sobre reservas pendentes.
