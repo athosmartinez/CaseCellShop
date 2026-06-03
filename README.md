@@ -21,7 +21,7 @@ Acesse **http://localhost:3000**. O SQLite é criado e semeado automaticamente n
 ## Como testar
 
 ```bash
-npm test           # roda os 31 testes de backend + 2 de frontend
+npm test           # roda os 34 testes de backend + 3 de frontend
 ```
 
 ---
