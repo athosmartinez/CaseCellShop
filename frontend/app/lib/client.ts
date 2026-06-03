@@ -1,4 +1,3 @@
-'use client'
 import type { Order, ErpScenario } from '../types'
 
 export type CheckoutSuccess = { ok: true; order: Order }
