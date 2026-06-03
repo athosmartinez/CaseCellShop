@@ -53,26 +53,29 @@ export class CheckoutService {
       maxRetries: env.ERP_MAX_RETRIES,
     })
 
-    // --- Transação síncrona: confirmar ou compensar ---
+    // --- Transação síncrona: desfecho terminal atômico (confirmar ou compensar) ---
     if (billing.ok) {
-      this.orders.updateStatus(order.id, 'CONFIRMED')
-      const confirmed = this.orders.findById(order.id)!
-      this.idempotency.finalize(idempotencyKey, { httpStatus: 201, body: { order: confirmed } })
+      const confirm = this.db.transaction(() => {
+        this.orders.updateStatus(order.id, 'CONFIRMED')
+        const confirmed = this.orders.findById(order.id)!
+        this.idempotency.finalize(idempotencyKey, { httpStatus: 201, body: { order: confirmed } })
+        return confirmed
+      })
+      const confirmed = confirm()
       this.log.info({ orderId: order.id, invoiceId: billing.invoiceId }, 'checkout: confirmado')
       return { kind: 'created', order: confirmed }
     }
 
+    // Falha transitória: compensa estoque, marca FAILED e LIBERA a chave (não cacheia 503).
+    // O retry com a mesma chave re-tenta do zero (estilo Stripe).
     const compensate = this.db.transaction(() => {
       this.products.restore(productId, quantity)
       this.orders.updateStatus(order.id, 'FAILED', billing.reason)
+      this.idempotency.release(idempotencyKey)
     })
     compensate()
     const failed = this.orders.findById(order.id)!
-    this.idempotency.finalize(idempotencyKey, {
-      httpStatus: 503,
-      body: { error: { code: 'ERP_UNAVAILABLE', message: 'Falha temporária ao processar o pedido. Tente novamente.' } },
-    })
-    this.log.warn({ orderId: order.id, reason: billing.reason }, 'checkout: ERP falhou, estoque compensado')
+    this.log.warn({ orderId: order.id, reason: billing.reason }, 'checkout: ERP falhou, estoque compensado, chave liberada')
     return { kind: 'erp_unavailable', order: failed, reason: billing.reason }
   }
 

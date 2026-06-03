@@ -24,4 +24,11 @@ describe('IdempotencyRepository', () => {
     repo.finalize('k1', { httpStatus: 201, body: { ok: true } })
     expect(repo.getOutcome('k1')).toEqual({ httpStatus: 201, body: { ok: true }, orderId: null })
   })
+
+  it('release remove a chave, permitindo reivindicá-la de novo', () => {
+    expect(repo.tryClaim('k1')).toBe(true)
+    repo.release('k1')
+    expect(repo.getOutcome('k1')).toBeNull()
+    expect(repo.tryClaim('k1')).toBe(true) // re-tentável do zero
+  })
 })

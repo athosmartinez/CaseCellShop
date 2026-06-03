@@ -72,7 +72,8 @@ export function createHandlers(db: DB, erp: SimulatedErp) {
         res.status(503).json({ error: { code: 'ERP_UNAVAILABLE', message: 'Falha temporária ao processar o pedido. Tente novamente.' }, orderId: result.order.id, requestId: req.id })
         return
       case 'duplicate_in_flight':
-        res.status(200).json({ idempotent: true, order: result.order, requestId: req.id })
+        // 202 Accepted: pedido aceito, ainda em processamento (não confirmado).
+        res.status(202).json({ idempotent: true, order: result.order, requestId: req.id })
         return
       case 'duplicate_finished': {
         const base = result.outcome.body

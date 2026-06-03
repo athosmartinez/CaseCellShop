@@ -28,6 +28,11 @@ export class IdempotencyRepository {
       .run(outcome.httpStatus, JSON.stringify(outcome.body), key)
   }
 
+  /** Libera a chave (falha transitória): um retry com a mesma chave re-tenta do zero. */
+  release(key: string): void {
+    this.db.prepare('DELETE FROM idempotency_keys WHERE key = ?').run(key)
+  }
+
   getOutcome(key: string): { httpStatus: number | null; body: unknown | null; orderId: string | null } | null {
     const row = this.db
       .prepare('SELECT order_id, http_status, response_json FROM idempotency_keys WHERE key = ?')
