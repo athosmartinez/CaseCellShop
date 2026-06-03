@@ -44,7 +44,7 @@ flowchart TD
   A["POST /checkout"] --> V{"Entrada válida?"}
   V -- não --> E400["400 VALIDATION_ERROR"]
   V -- sim --> I{"Idempotency-Key<br/>já vista?"}
-  I -- sim --> DUP["replica desfecho<br/>(200 idempotente)"]
+  I -- sim --> DUP["replica desfecho gravado<br/>(em andamento: 200; finalizado: status original)"]
   I -- não --> R{"UPDATE stock<br/>WHERE stock >= qty"}
   R -- falhou --> E409["409 INSUFFICIENT_STOCK"]
   R -- ok --> ERP{"ERP fatura?<br/>timeout + retry"}
