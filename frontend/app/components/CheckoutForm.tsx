@@ -5,7 +5,13 @@ import type { Product } from '../types'
 import { postCheckout } from '../lib/client'
 import { getScenario } from '../lib/scenario'
 
-type Status = 'idle' | 'submitting' | 'success' | 'error'
+type Status = 'idle' | 'submitting' | 'success' | 'pending' | 'error'
+
+function messageColor(status: Status): string {
+  if (status === 'error') return 'crimson'
+  if (status === 'pending') return 'darkorange'
+  return 'green'
+}
 
 export function CheckoutForm({ product }: { product: Product }) {
   const router = useRouter()
@@ -22,7 +28,10 @@ export function CheckoutForm({ product }: { product: Product }) {
     const idempotencyKey = crypto.randomUUID()
     try {
       const result = await postCheckout({ productId: product.id, quantity }, idempotencyKey, getScenario())
-      if (result.ok) {
+      if ('pending' in result) {
+        setStatus('pending')
+        setMessage(result.message)
+      } else if (result.ok) {
         setStatus('success')
         setMessage(`Compra confirmada! Pedido ${result.order.id.slice(0, 8)}.`)
       } else {
@@ -53,7 +62,7 @@ export function CheckoutForm({ product }: { product: Product }) {
         {status === 'submitting' ? 'Processando…' : 'Comprar'}
       </button>
       {message && (
-        <p role="status" data-status={status} style={{ color: status === 'error' ? 'crimson' : 'green' }}>
+        <p role="status" data-status={status} style={{ color: messageColor(status) }}>
           {message}
         </p>
       )}

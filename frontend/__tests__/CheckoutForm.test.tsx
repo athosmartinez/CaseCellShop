@@ -33,4 +33,12 @@ describe('CheckoutForm', () => {
     await userEvent.click(screen.getByRole('button', { name: /comprar/i }))
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/estoque insuficiente/i))
   })
+
+  it('mostra "em processamento" no caso pending e NÃO "Compra confirmada!"', async () => {
+    postCheckout.mockResolvedValue({ pending: true, message: 'Pedido em processamento. Aguarde a confirmação.' })
+    render(<CheckoutForm product={product} />)
+    await userEvent.click(screen.getByRole('button', { name: /comprar/i }))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/em processamento/i))
+    expect(screen.queryByText(/compra confirmada/i)).toBeNull()
+  })
 })
