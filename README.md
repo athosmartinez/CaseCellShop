@@ -44,7 +44,7 @@ flowchart TD
   A["POST /checkout"] --> V{"Entrada válida?"}
   V -- não --> E400["400 VALIDATION_ERROR"]
   V -- sim --> I{"Idempotency-Key<br/>já vista?"}
-  I -- sim --> DUP["replica desfecho gravado<br/>(em andamento: 200; finalizado: status original)"]
+  I -- sim --> DUP["em andamento: 202 Accepted;<br/>finalizado: replica 201/409/404"]
   I -- não --> R{"UPDATE stock<br/>WHERE stock >= qty"}
   R -- falhou --> E409["409 INSUFFICIENT_STOCK"]
   R -- ok --> ERP{"ERP fatura?<br/>timeout + retry"}
@@ -61,7 +61,7 @@ flowchart TD
 | **P01 — Vitrine lenta** | Lê do read-model SQLite local (rápido, sem JOIN pesado) + SSR no Next — a loja renderiza no servidor com os dados frescos. |
 | **P02 — Overselling** | Reserva atômica: `UPDATE products SET stock = stock - :q WHERE id = :id AND stock >= :q`. O banco rejeita atomicamente se estoque insuficiente — sem race condition. |
 | **P03 — Resiliência** | Chamada ao ERP **fora** da seção crítica (após o UPDATE). Timeout por tentativa + retry limitado a erros transitórios. Compensação atômica do estoque na falha. |
-| **Pedido duplicado** | `INSERT` em coluna `idempotency_key UNIQUE` — o banco arbitra, sem check-then-insert. Cliente gera uma chave por tentativa; o desfecho é replicado. |
+| **Pedido duplicado** | `INSERT` em coluna `idempotency_key UNIQUE` — o banco arbitra, sem check-then-insert. Cliente gera uma chave por tentativa; o desfecho é replicado. Falhas transitórias do ERP **liberam** a idempotency-key (não são cacheadas), permitindo retry com a mesma chave (estilo Stripe). |
 | **Stack** | Express por familiaridade e sem magia; Next.js como stack do dia a dia com SSR nativo para a vitrine; **better-sqlite3 ^12** com binários pré-compilados para Node 20–26 — sem build nativo, sem Docker, apto em qualquer máquina de avaliação. |
 
 ---
