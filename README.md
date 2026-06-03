@@ -62,7 +62,7 @@ flowchart TD
 | **P02 — Overselling** | Reserva atômica: `UPDATE products SET stock = stock - :q WHERE id = :id AND stock >= :q`. O banco rejeita atomicamente se estoque insuficiente — sem race condition. |
 | **P03 — Resiliência** | Chamada ao ERP **fora** da seção crítica (após o UPDATE). Timeout por tentativa + retry limitado a erros transitórios. Compensação atômica do estoque na falha. |
 | **Pedido duplicado** | `INSERT` em coluna `idempotency_key UNIQUE` — o banco arbitra, sem check-then-insert. Cliente gera uma chave por tentativa; o desfecho é replicado. Falhas transitórias do ERP **liberam** a idempotency-key (não são cacheadas), permitindo retry com a mesma chave (estilo Stripe). |
-| **Stack** | Express por familiaridade e sem magia; Next.js como stack do dia a dia com SSR nativo para a vitrine; **better-sqlite3 ^12** com binários pré-compilados para Node 20–26 — sem build nativo, sem Docker, apto em qualquer máquina de avaliação. |
+| **Stack** | Express: minimalista e amplamente adotado, sem abstrações que escondam o fluxo; Next.js (App Router): SSR nativo para a vitrine; **better-sqlite3 ^12**: binários pré-compilados para Node 20–26 — sem build nativo nem Docker, roda em qualquer máquina. |
 
 ---
 
@@ -116,6 +116,19 @@ Retorna o estado atual: `PROCESSING` → `CONFIRMED` ou `FAILED`.
 - **Checkout assíncrono:** aceitar o pedido com `202 Accepted` e processar em background; o cliente faz polling em `GET /orders/:id` — desacopla totalmente da latência do ERP.
 - Sweeper de reservas com TTL para fechar o stock leak.
 - **Cancelamento de requisição (`AbortController`) + circuit breaker** no cliente do ERP: hoje o timeout responde rápido, mas não cancela a chamada lenta no upstream (ver Limitações → cenário `slow`). Cancelar evita trabalho desperdiçado e o "faturamento fantasma"; o circuit breaker evita martelar um ERP já degradado. OpenAPI quando virar produto.
+
+---
+
+## Processo de desenvolvimento
+
+Fluxo **spec-driven**, com revisão a cada etapa:
+
+1. **Spec primeiro.** Escopo, os 3 problemas e as decisões de arquitetura definidos antes de escrever código.
+2. **Plano em tarefas verificáveis** (TDD), arquivo por arquivo.
+3. **Implementação com revisão por etapa** — conformidade com o spec + qualidade de código.
+4. **Code review final** do diff, com correções verificadas por testes.
+
+As decisões técnicas e o raciocínio estão em [`PROMPTS.md`](./PROMPTS.md).
 
 ---
 
