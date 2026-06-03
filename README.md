@@ -102,12 +102,20 @@ Retorna o estado atual: `PROCESSING` → `CONFIRMED` ou `FAILED`.
 
 - **Vazamento de estoque (stock leak):** se o processo cair entre a reserva do estoque e a compensação em caso de falha do ERP, o estoque fica preso. Mitigação real: sweeper com TTL sobre reservas pendentes.
 - Dados em SQLite local; sem sincronização real com um ERP externo.
+- **Timeout não cancela a chamada ao ERP (cenário `slow`):** o timeout por tentativa responde rápido ao cliente, mas a chamada lenta ao ERP segue executando em segundo plano até terminar sozinha — não há cancelamento.
+
+  *Exemplo* (com `ERP_TIMEOUT_MS=1500` e o ERP levando ~16s no cenário `slow`):
+  1. `t=0s` — cliente faz `POST /checkout`; o estoque é **reservado**.
+  2. `t=1,5s` — o timeout dispara → o cliente recebe **503** e o estoque é **compensado** (devolvido). Do ponto de vista do cliente e do estoque, está tudo coerente.
+  3. `t=16s` — a chamada ao ERP, **que não foi cancelada**, resolve "sozinha", sem ninguém aguardando por ela. Num ERP real isso poderia significar um faturamento gerado *depois* de o cliente já ter desistido (um "faturamento fantasma"), além de timers acumulados sob carga de muitas requisições lentas.
+
+  Como o ERP aqui é **simulado** (o `delay` não comete efeito externo, só retornaria um `invoiceId`), **não há impacto funcional** na entrega — é uma questão de higiene de recurso/realismo. A correção de produção é cancelar a requisição (ver Próximos passos).
 
 ## Próximos passos
 
 - **Checkout assíncrono:** aceitar o pedido com `202 Accepted` e processar em background; o cliente faz polling em `GET /orders/:id` — desacopla totalmente da latência do ERP.
 - Sweeper de reservas com TTL para fechar o stock leak.
-- Circuit breaker no cliente do ERP; OpenAPI quando virar produto.
+- **Cancelamento de requisição (`AbortController`) + circuit breaker** no cliente do ERP: hoje o timeout responde rápido, mas não cancela a chamada lenta no upstream (ver Limitações → cenário `slow`). Cancelar evita trabalho desperdiçado e o "faturamento fantasma"; o circuit breaker evita martelar um ERP já degradado. OpenAPI quando virar produto.
 
 ---
 
