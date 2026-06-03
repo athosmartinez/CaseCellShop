@@ -23,8 +23,8 @@ Projeto desenvolvido com apoio de IA (Claude Code) num fluxo **spec-driven**, co
 **Decisão:** reservar o estoque atomicamente e só **depois** chamar o ERP, **fora** da transação de reserva; em falha, compensar (devolver o estoque) em outro `UPDATE` atômico.
 **Por quê:** não serializa a latência do ERP na seção crítica, e a janela de race nunca toca o estoque. Trata o Problema 03 sem bloquear leitores.
 
-### Idempotência — `INSERT` em coluna UNIQUE
-**Decisão:** o cliente envia uma `Idempotency-Key` por tentativa; o servidor faz `INSERT` numa coluna UNIQUE e deixa o banco arbitrar (não check-then-insert). Falha transitória do ERP **libera** a chave, permitindo retry com a mesma chave.
+### Idempotência — `INSERT` em chave única (PRIMARY KEY)
+**Decisão:** o cliente envia uma `Idempotency-Key` por tentativa; o servidor faz `INSERT` na chave primária (UNIQUE) da tabela de idempotência e deixa o banco arbitrar (não check-then-insert). Falha transitória do ERP **libera** a chave, permitindo retry com a mesma chave.
 **Por quê:** fecha a corrida de duplo-clique e retry concorrente de forma simples e correta, sem lock de aplicação nem estado em memória.
 
 ### Timeout vs. retry — falhar rápido na lentidão
