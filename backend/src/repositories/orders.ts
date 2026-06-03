@@ -35,7 +35,12 @@ export class OrderRepository {
   }
 
   findById(id: string): Order | null {
-    const row = this.db.prepare('SELECT * FROM orders WHERE id = ?').get(id) as OrderRow | undefined
+    const row = this.db
+      .prepare(
+        `SELECT id, product_id, quantity, unit_price_cents, total_cents, status, failure_reason, created_at, updated_at
+         FROM orders WHERE id = ?`,
+      )
+      .get(id) as OrderRow | undefined
     return row ? toOrder(row) : null
   }
 }
