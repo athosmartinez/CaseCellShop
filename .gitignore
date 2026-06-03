@@ -51,8 +51,8 @@ lerna-debug.log*
 .parcel-cache/
 
 # Banco de dados local / dados temporários
-*.sqlite
-*.sqlite3
+/data/
+*.sqlite*
 *.db
 tmp/
 temp/
