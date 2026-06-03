@@ -114,9 +114,7 @@ _Cenário: dois clientes tentam comprar a última unidade ao mesmo tempo._
 
 - **Envelope de erro padronizado:** `{ error: { code, message, details? }, requestId }`. O `code` é **estável**: o front decide a UI pelo `code`, não pela string da mensagem.
 - **Rastreabilidade:** todo response ecoa `requestId` (header `x-request-id` + corpo), o que ajuda suporte e correlação de logs.
-- **Endpoint de status:** `GET /orders/:id` → `PROCESSING | CONFIRMED | FAILED` (base para o fluxo assíncrono com polling). _(Implementado.)_
-- **`202` com `order: null`:** numa duplicata concorrente que chega antes de o pedido ser criado, o `order` pode vir `null` (a chave já foi reivindicada, o pedido ainda não existe).
-- **Escopo single-item:** o contrato cobre **um item por vez** (`productId` + `quantity`). Um carrinho multi-item exigiria reservar N SKUs numa única transação (all-or-nothing) — evolução proposta.
+- **Endpoint de status:** `GET /orders/:id` → `PROCESSING | CONFIRMED | FAILED` (base para o fluxo assíncrono com polling). _(Implementado.)_- **Escopo single-item:** o contrato cobre **um item por vez** (`productId` + `quantity`). Um carrinho multi-item exigiria reservar N SKUs numa única transação (all-or-nothing) — evolução proposta.
 
 ### Como o front reage a cada caso
 
